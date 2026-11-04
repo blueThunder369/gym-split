@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#b91c1c">
+  <title>Cadet Readiness | ROTC Weekly Plan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top);
+      --sab: env(safe-area-inset-bottom);
+    }
+    body {
+      background-color: #0b0f17;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .safe-top {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(80px, calc(env(safe-area-inset-bottom) + 68px));
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP HEADER (Notch Aligned) -->
+  <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-red-900/40 safe-top px-4 pb-3 shadow-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-2.5 h-6 bg-red-600 rounded-sm"></div>
+        <div>
+          <h1 class="text-sm font-black tracking-widest uppercase text-slate-100 flex items-center gap-1.5">
+            ROTC PHYSICAL READINESS
+          </h1>
+          <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Fall 2026 Phase • Hypertrophy & ACFT</p>
+        </div>
+      </div>
+      <button onclick="toggleModal(true)" class="flex items-center gap-1 bg-red-950/70 border border-red-700/60 hover:bg-red-900 text-red-200 text-xs px-2.5 py-1.5 rounded-md font-bold tracking-wider transition active:scale-95">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        <span>Update</span>
+      </button>
+    </div>
+
+    <!-- DAY SELECTOR STRIP -->
+    <div id="day-selector" class="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none py-0.5">
+      <!-- Buttons dynamically populated -->
+    </div>
+  </header>
+
+  <!-- MAIN SCROLLABLE CONTENT -->
+  <main class="flex-1 px-4 py-4 safe-bottom max-w-xl mx-auto w-full space-y-4">
+    <!-- Day Overview Card -->
+    <div id="overview-card" class="bg-gradient-to-br from-red-950/80 via-slate-900 to-slate-900 border border-red-800/40 rounded-xl p-3.5 shadow-lg">
+      <!-- Injected -->
+    </div>
+
+    <!-- Warnings / Notes -->
+    <div id="buffer-alert" class="hidden rounded-lg p-3 text-xs font-semibold flex items-start gap-2.5 border">
+      <!-- Injected -->
+    </div>
+
+    <!-- Warm-up Section -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+          <i data-lucide="flame" class="w-4 h-4"></i> Warm-up & Prep
+        </span>
+        <span id="warmup-time" class="text-[10px] text-slate-400 font-mono">10 MIN</span>
+      </div>
+      <p id="warmup-details" class="text-xs text-slate-300 leading-relaxed"></p>
+    </div>
+
+    <!-- Exercise List -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between px-1">
+        <span class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i data-lucide="dumbbell" class="w-4 h-4 text-red-500"></i> Main Prescription
+        </span>
+        <span id="exercise-count" class="text-[11px] text-slate-400 font-mono font-bold"></span>
+      </div>
+      <div id="exercise-list" class="space-y-2.5">
+        <!-- Injected cards -->
+      </div>
+    </div>
+
+    <!-- Cool-down Section -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <i data-lucide="heart-pulse" class="w-4 h-4"></i> Cool-down & Mobility
+        </span>
+        <span id="cooldown-time" class="text-[10px] text-slate-400 font-mono">10 MIN</span>
+      </div>
+      <p id="cooldown-details" class="text-xs text-slate-300 leading-relaxed"></p>
+    </div>
+  </main>
+
+  <!-- REST TIMER TRAY -->
+  <div class="fixed bottom-0 left-0 right-0 z-30 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 px-4 py-2.5 flex items-center justify-between" style="padding-bottom: max(10px, env(safe-area-inset-bottom));">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
+        <i data-lucide="timer" class="w-4 h-4 text-red-500"></i>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Rest Clock</div>
+        <div id="timer-display" class="font-mono text-base font-black text-slate-100">00:00</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5">
+      <button onclick="startTimer(30)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-mono font-bold px-2 py-1.5 rounded text-slate-200">30s</button>
+      <button onclick="startTimer(60)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-mono font-bold px-2 py-1.5 rounded text-slate-200">60s</button>
+      <button onclick="startTimer(90)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-mono font-bold px-2 py-1.5 rounded text-slate-200">90s</button>
+      <button onclick="startTimer(120)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-mono font-bold px-2 py-1.5 rounded text-slate-200">2m</button>
+      <button onclick="resetTimer()" class="bg-red-950/70 border border-red-700/50 text-red-300 active:scale-95 text-xs px-2 py-1.5 rounded">
+        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- PLAN UPDATE MODAL -->
+  <div id="update-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[88vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-5 bg-red-600 rounded-sm"></div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-white">Import Weekly Workout Plan</h2>
+        </div>
+        <button onclick="toggleModal(false)" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400">Paste the JSON schedule text generated in our chat to instantly update this app without reinstalling.</p>
+
+      <textarea id="json-input" class="w-full flex-1 min-h-[220px] bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-red-500" placeholder="Paste updated JSON here..."></textarea>
+
+      <div class="flex gap-2 pt-1">
+        <button onclick="applyPlanUpdate()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase transition active:scale-98">
+          Apply Updates
+        </button>
+        <button onclick="copyCurrentPlan()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2.5 rounded-lg text-xs">
+          Copy Current
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // INITIAL WEEKLY PLAN DATA
+    const defaultPlan = {
+      days: [
+        {
+          id: "mon",
+          label: "Mon",
+          fullTitle: "Monday — Long Run & Core",
+          location: "Liberty Park / Dorm",
+          timeBlock: "06:15 – 07:30 (ROTC) | Afternoon Core",
+          focus: "Aerobic Capacity & ACFT Core Foundation",
+          bufferNote: "Morning PT at Liberty Park. Finish afternoon core before evening coursework.",
+          bufferType: "normal",
+          warmupTime: "15 MIN",
+          warmup: "Dynamic preparatory drills, hip circles, light jog strides, inchworms.",
+          cooldownTime: "15 MIN",
+          cooldown: "Standing quad stretch, deep seated hamstring stretch, pigeon pose, calves on curb.",
+          exercises: [
+            { name: "ROTC Long Run", target: "6.0 Miles", notes: "Select 8:00, 9:00, or 10:00 pace group", alt: "Stationary Bike 40 min Zone 2", sets: 1 },
+            { name: "Forearm Plank (ACFT Stance)", target: "3 sets × 60s", notes: "Elbows under shoulders, glutes locked", alt: "Hollow body hold 45s", sets: 3 },
+            { name: "Hanging Knee/Leg Raises", target: "3 sets × 10-12 reps", notes: "Strict cadence, avoid swinging", alt: "Lying reverse crunches", sets: 3 },
+            { name: "Deadbugs", target: "3 sets × 12/side", notes: "Keep lower back glued to floor", alt: "Bird-dogs with pause", sets: 3 }
+          ]
+        },
+        {
+          id: "tue",
+          label: "Tue",
+          fullTitle: "Tuesday — Dorm Lower & Trunk",
+          location: "Dorm Gym (Sage Point)",
+          timeBlock: "Afternoon (Post-Math 1210)",
+          focus: "Lower Hypertrophy & Sparing Shoulders for Sprints",
+          bufferNote: "Hard stop before 17:00 Study Hall. Keep 2 reps in reserve so legs bounce back for Wednesday sprints.",
+          bufferType: "warning",
+          warmupTime: "8 MIN",
+          warmup: "Bodyweight squats, deep hip openers, glute bridges, high knees, ankle rotations.",
+          cooldownTime: "10 MIN",
+          cooldown: "Couch stretch (quad/hip flexor), seated hamstring stretch, glute pigeon pose.",
+          exercises: [
+            { name: "Dumbbell Goblet Squats", target: "3 sets × 10-12 reps", notes: "Chest proud, knees tracked outward", alt: "Dumbbell Sumo Squats", sets: 3 },
+            { name: "Dumbbell Romanian Deadlifts", target: "3 sets × 10 reps", notes: "Hips back, feel hamstring stretch", alt: "Single-leg DB Deadlift", sets: 3 },
+            { name: "Walking Dumbbell Lunges", target: "3 sets × 10 steps/leg", notes: "Upright torso, controlled knee descent", alt: "Reverse static lunges", sets: 3 },
+            { name: "Standing Calf Raises", target: "3 sets × 15 reps", notes: "Pause 2s at top on a step/ledge", alt: "Single-leg calf raises", sets: 3 },
+            { name: "Weighted/Bodyweight Plank", target: "3 sets × 60s", notes: "Solid tension across whole trunk", alt: "Side planks 35s/side", sets: 3 }
+          ]
+        },
+        {
+          id: "wed",
+          label: "Wed",
+          fullTitle: "Wednesday — Speed Intervals & Shoulder Prehab",
+          location: "McCarthy Track / Campus",
+          timeBlock: "06:30 – 07:30 (ROTC) | 16:30 Mobility",
+          focus: "2-Mile Run Pace & Scapular Stability",
+          bufferNote: "Track sprints at 06:30. Afternoon prehab keeps rotator cuffs healthy for Thursday upper body.",
+          bufferType: "normal",
+          warmupTime: "15 MIN",
+          warmup: "2 laps jog, high knees, butt kicks, A-skips, arm swings.",
+          cooldownTime: "15 MIN",
+          cooldown: "2 slow laps walk, doorway chest stretch, cross-body shoulder stretch.",
+          exercises: [
+            { name: "Track Intervals: 120s / 60s", target: "8-10 Rounds", notes: "120s sprint at 2-mile pace / 60s recovery jog", alt: "Row Erg 500m repeats", sets: 8 },
+            { name: "Banded Face Pulls", target: "3 sets × 15 reps", notes: "Pinch rear delts and scapulae back", alt: "Rear delt dumbbell flyes", sets: 3 },
+            { name: "Banded Pass-Throughs", target: "2 sets × 12 reps", notes: "Slow controlled shoulder rotation", alt: "Wall slides", sets: 2 },
+            { name: "Side Planks", target: "3 sets × 35s / side", notes: "Obliques engaged, hips elevated", alt: "Suitcase carry 40m", sets: 3 }
+          ]
+        },
+        {
+          id: "thu",
+          label: "Thu",
+          fullTitle: "Thursday — SLC Upper & ACFT Push/Pull",
+          location: "Student Life Center (SLC)",
+          timeBlock: "06:00 – 07:45 AM",
+          focus: "Upper Hypertrophy, HRP Precision & Grip",
+          bufferNote: "Early morning lift. Wrap by 07:45 to commute and shower before 08:30 Mech 1000 class.",
+          bufferType: "warning",
+          warmupTime: "10 MIN",
+          warmup: "500m ski-erg/row, push-up plus, arm circles, band pull-aparts.",
+          cooldownTime: "10 MIN",
+          cooldown: "Dead hang on pull-up bar, lat stretch on pole, child's pose, forearm flexor stretches.",
+          exercises: [
+            { name: "Hex / Trap Bar Deadlift", target: "3 sets × 6-8 reps", notes: "Explosive hip drive, build ACFT 340lb deadlift", alt: "Barbell Conventional Deadlift", sets: 3 },
+            { name: "Incline Dumbbell Bench Press", target: "3 sets × 8-10 reps", notes: "Full range of motion, control eccentric", alt: "Barbell Incline Press", sets: 3 },
+            { name: "Hand-Release Push-Up Drills", target: "3 sets × 8-10 strict", notes: "Hands lift completely, snap up in one plank unit", alt: "Deficit push-ups", sets: 3 },
+            { name: "Lat Pulldown (or Pull-Ups)", target: "3 sets × 8-10 reps", notes: "Drive elbows down to hips", alt: "Assisted Pull-ups", sets: 3 },
+            { name: "Seated Cable Row", target: "3 sets × 10 reps", notes: "Squeeze shoulder blades for 1 second", alt: "Chest-supported DB Row", sets: 3 },
+            { name: "Heavy Farmer's Carries", target: "3 sets × 40m", notes: "Grip resilience for sprint-drag-carry", alt: "Trap bar carry", sets: 3 }
+          ]
+        },
+        {
+          id: "fri",
+          label: "Fri",
+          fullTitle: "Friday — 5-Mile Ruck & Full Rest",
+          location: "Sugarhouse Park",
+          timeBlock: "06:00 – 07:30 (ROTC Ruck) | AFTERNOON OFF",
+          focus: "Load Bearing & Complete Physical Recovery",
+          bufferNote: "Zero additional lifting today. Rest day protected to let spine and legs decompress.",
+          bufferType: "danger",
+          warmupTime: "10 MIN",
+          warmup: "Stretch on own, dynamic lunges, ankle rolls.",
+          cooldownTime: "15 MIN",
+          cooldown: "Unlace boots immediately, elevate feet, 10 min gentle quad and lower back foam rolling.",
+          exercises: [
+            { name: "ROTC 5-Mile Ruck (35 lbs)", target: "5.0 Miles", notes: "Aim for 15-min standard mile pace", alt: "Non-weight trail walk", sets: 1 },
+            { name: "Complete Rest & High Protein Meal", target: "Afternoon", notes: "Rehydrate with electrolytes, avoid lifting", alt: "Full rest", sets: 1 }
+          ]
+        },
+        {
+          id: "sat",
+          label: "Sat",
+          fullTitle: "Saturday — Full Body Hypertrophy & Power",
+          location: "Student Life Center (SLC)",
+          timeBlock: "09:30 – 11:00 AM (Flexible)",
+          focus: "Overall Muscle Mass & Standing Power Throw",
+          bufferNote: "Open weekend session. Take longer rests between heavy compound sets.",
+          bufferType: "normal",
+          warmupTime: "10 MIN",
+          warmup: "Treadmill incline walk, hip circles, medicine ball rotational taps.",
+          cooldownTime: "12 MIN",
+          cooldown: "Full body mobility flow: pigeon, thread the needle, downward dog to cobra.",
+          exercises: [
+            { name: "Overhead Dumbbell Press", target: "3 sets × 8-10 reps", notes: "Keep ribs down, lock overhead", alt: "Standing Barbell OHP", sets: 3 },
+            { name: "Bulgarian Split Squats", target: "3 sets × 8 reps/leg", notes: "Front foot planted, knee stable", alt: "Dumbbell Step-ups", sets: 3 },
+            { name: "Chest-Supported DB Rows", target: "3 sets × 10 reps", notes: "Zero lower back strain, strict pull", alt: "Inverted body rows", sets: 3 },
+            { name: "Med Ball Backward Overhead Toss", target: "4 sets × 5 reps", notes: "Triple extension (ankles, knees, hips) for ACFT SPT", alt: "Kettlebell swings", sets: 4 },
+            { name: "Hanging Leg Tucks", target: "3 sets × 10 reps", notes: "Controlled core contraction", alt: "Captains chair knee raises", sets: 3 }
+          ]
+        },
+        {
+          id: "sun",
+          label: "Sun",
+          fullTitle: "Sunday — Active Recovery & Deep Mobility",
+          location: "Dorm Room or Campus Grounds",
+          timeBlock: "Anytime (30-45 min)",
+          focus: "Tissue Quality & Nervous System Reset",
+          bufferNote: "Prepares legs and nervous system for Monday 6-mile run.",
+          bufferType: "normal",
+          warmupTime: "5 MIN",
+          warmup: "Gentle walk around campus or light spin.",
+          cooldownTime: "10 MIN",
+          cooldown: "Diaphragmatic box breathing (4s in, 4s hold, 4s out, 4s hold) for 5 minutes.",
+          exercises: [
+            { name: "Campus Low-Intensity Walk", target: "25-30 Minutes", notes: "Flush lactic acid, promote blood flow", alt: "Easy stationary bike", sets: 1 },
+            { name: "Couch Hip Flexor Stretch", target: "2 rounds × 45s/side", notes: "Release tight psoas from rucking", alt: "Kneeling lunge stretch", sets: 2 },
+            { name: "Hamstring Band Stretch", target: "2 rounds × 45s/side", notes: "Gentle pull without shaking", alt: "Towel hamstring stretch", sets: 2 },
+            { name: "Deep Squat Ankle Hold", target: "2 rounds × 60s", notes: "Open ankles and deep groin", alt: "Prone frog stretch", sets: 2 }
+          ]
+        }
+      ]
+    };
+
+    // APP STATE
+    let currentPlan = defaultPlan;
+    let selectedDayId = "tue"; // default to Tuesday
+    let checkedSets = {};
+
+    function init() {
+      const savedPlan = localStorage.getItem("rotc_workout_plan_v1");
+      if (savedPlan) {
+        try { currentPlan = JSON.parse(savedPlan); } catch (e) { currentPlan = defaultPlan; }
+      }
+      const savedChecks = localStorage.getItem("rotc_checked_sets_v1");
+      if (savedChecks) {
+        try { checkedSets = JSON.parse(savedChecks); } catch (e) { checkedSets = {}; }
+      }
+
+      // Match current day of the week if available
+      const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      const todayId = dayNames[new Date().getDay()];
+      if (currentPlan.days.some(d => d.id === todayId)) {
+        selectedDayId = todayId;
+      }
+
+      renderDayButtons();
+      renderActiveDay();
+      lucide.createIcons();
+    }
+
+    function renderDayButtons() {
+      const container = document.getElementById("day-selector");
+      container.innerHTML = currentPlan.days.map(d => {
+        const isActive = d.id === selectedDayId;
+        return `
+          <button onclick="selectDay('${d.id}')" 
+            class="flex-1 min-w-[44px] py-1.5 px-2 rounded-lg text-center transition active:scale-95 border ${
+              isActive 
+                ? 'bg-red-600 border-red-500 text-white shadow-md shadow-red-950 font-black' 
+                : 'bg-slate-900 border-slate-800 text-slate-400 font-bold hover:text-slate-200'
+            }">
+            <div class="text-[11px] tracking-wider uppercase font-mono">${d.label}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectDay(dayId) {
+      selectedDayId = dayId;
+      renderDayButtons();
+      renderActiveDay();
+      lucide.createIcons();
+    }
+
+    function renderActiveDay() {
+      const day = currentPlan.days.find(d => d.id === selectedDayId);
+      if (!day) return;
+
+      // Overview Card
+      document.getElementById("overview-card").innerHTML = `
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-[10px] font-bold text-red-400 tracking-wider uppercase">${day.timeBlock}</div>
+            <h2 class="text-base font-black text-white uppercase tracking-tight mt-0.5">${day.fullTitle}</h2>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
+            ${day.location}
+          </span>
+        </div>
+        <p class="text-xs text-slate-300 mt-2 font-medium">${day.focus}</p>
+      `;
+
+      // Buffer alert
+      const alertEl = document.getElementById("buffer-alert");
+      if (day.bufferNote) {
+        alertEl.classList.remove("hidden");
+        if (day.bufferType === 'danger') {
+          alertEl.className = "rounded-lg p-3 text-xs font-semibold flex items-start gap-2.5 border bg-red-950/60 border-red-700/60 text-red-200";
+          alertEl.innerHTML = `<i data-lucide="shield-alert" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i><div>${day.bufferNote}</div>`;
+        } else if (day.bufferType === 'warning') {
+          alertEl.className = "rounded-lg p-3 text-xs font-semibold flex items-start gap-2.5 border bg-amber-950/40 border-amber-700/60 text-amber-200";
+          alertEl.innerHTML = `<i data-lucide="clock" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i><div>${day.bufferNote}</div>`;
+        } else {
+          alertEl.className = "rounded-lg p-3 text-xs font-semibold flex items-start gap-2.5 border bg-slate-900 border-slate-800 text-slate-300";
+          alertEl.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0 mt-0.5"></i><div>${day.bufferNote}</div>`;
+        }
+      } else {
+        alertEl.classList.add("hidden");
+      }
+
+      // Warm-up & Cool-down
+      document.getElementById("warmup-time").innerText = day.warmupTime || "10 MIN";
+      document.getElementById("warmup-details").innerText = day.warmup || "Dynamic mobility drills.";
+      document.getElementById("cooldown-time").innerText = day.cooldownTime || "10 MIN";
+      document.getElementById("cooldown-details").innerText = day.cooldown || "Static stretching and hydration.";
+
+      // Exercise List
+      document.getElementById("exercise-count").innerText = `${day.exercises.length} MOVEMENTS`;
+      document.getElementById("exercise-list").innerHTML = day.exercises.map((ex, idx) => {
+        const totalSets = ex.sets || 3;
+        let setChips = '';
+        for (let s = 1; s <= totalSets; s++) {
+          const key = `${day.id}_ex${idx}_s${s}`;
+          const isDone = !!checkedSets[key];
+          setChips += `
+            <button onclick="toggleSet('${key}')" 
+              class="w-7 h-7 rounded text-[11px] font-mono font-bold transition active:scale-90 border ${
+                isDone 
+                  ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm' 
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+              }">
+              S${s}
+            </button>
+          `;
+        }
+
+        return `
+          <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-xl p-3 shadow-sm transition">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="text-sm font-bold text-white tracking-wide">${ex.name}</h3>
+                </div>
+                <div class="text-xs font-mono font-semibold text-red-400 mt-0.5">${ex.target}</div>
+                <div class="text-[11px] text-slate-400 mt-1 leading-snug">${ex.notes}</div>
+                ${ex.alt ? `<div class="text-[10px] text-slate-500 mt-1"><span class="text-slate-400 font-semibold">Alt:</span> ${ex.alt}</div>` : ''}
+              </div>
+            </div>
+            <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-800/80">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Log Sets</span>
+              <div class="flex gap-1.5">
+                ${setChips}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleSet(key) {
+      checkedSets[key] = !checkedSets[key];
+      localStorage.setItem("rotc_checked_sets_v1", JSON.stringify(checkedSets));
+      renderActiveDay();
+      lucide.createIcons();
+    }
+
+    // REST TIMER LOGIC
+    let timerInterval = null;
+    let secondsLeft = 0;
+
+    function startTimer(duration) {
+      clearInterval(timerInterval);
+      secondsLeft = duration;
+      updateTimerUI();
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          clearInterval(timerInterval);
+          secondsLeft = 0;
+          playBeep();
+        }
+        updateTimerUI();
+      }, 1000);
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      secondsLeft = 0;
+      updateTimerUI();
+    }
+
+    function updateTimerUI() {
+      const mins = Math.floor(secondsLeft / 60);
+      const secs = secondsLeft % 60;
+      const el = document.getElementById("timer-display");
+      el.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      if (secondsLeft > 0) {
+        el.className = "font-mono text-base font-black text-amber-400 animate-pulse";
+      } else {
+        el.className = "font-mono text-base font-black text-slate-100";
+      }
+    }
+
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+      } catch (e) {}
+    }
+
+    // MODAL & UPDATE LOGIC
+    function toggleModal(show) {
+      document.getElementById("update-modal").classList.toggle("hidden", !show);
+      if (show) {
+        document.getElementById("json-input").value = "";
+      }
+    }
+
+    function applyPlanUpdate() {
+      const text = document.getElementById("json-input").value.trim();
+      if (!text) return;
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.days && Array.isArray(parsed.days)) {
+          currentPlan = parsed;
+          localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+          toggleModal(false);
+          renderDayButtons();
+          renderActiveDay();
+          lucide.createIcons();
+          alert("Workout plan successfully updated!");
+        } else {
+          alert("Invalid format: Must contain a 'days' array.");
+        }
+      } catch (err) {
+        alert("Failed to parse JSON: " + err.message);
+      }
+    }
+
+    function copyCurrentPlan() {
+      const dataStr = JSON.stringify(currentPlan, null, 2);
+      navigator.clipboard.writeText(dataStr).then(() => {
+        alert("Current plan JSON copied to clipboard!");
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
