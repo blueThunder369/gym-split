@@ -9,6 +9,7 @@
   <title>Cadet Readiness | ROTC Weekly Plan</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
   <style>
     :root {
       --sat: env(safe-area-inset-top);
@@ -138,26 +139,33 @@
     </div>
   </div>
 
-  <!-- PLAN UPDATE MODAL -->
+  <!-- PLAN UPDATE & SYNC MODAL -->
   <div id="update-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[88vh] flex flex-col shadow-2xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2">
           <div class="w-2.5 h-5 bg-red-600 rounded-sm"></div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-white">Import Weekly Workout Plan</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-white">Update & Sync Plan</h2>
         </div>
         <button onclick="toggleModal(false)" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <p class="text-xs text-slate-400">Paste the JSON schedule text generated in our chat to instantly update this app without reinstalling.</p>
+      <p class="text-xs text-slate-400">Paste your JSON schedule below, or use <strong>Send via Chrome</strong> to push the loaded plan straight to your phone.</p>
 
-      <textarea id="json-input" class="w-full flex-1 min-h-[220px] bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-red-500" placeholder="Paste updated JSON here..."></textarea>
+      <textarea id="json-input" class="w-full flex-1 min-h-[190px] bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-red-500" placeholder="Paste updated JSON here..."></textarea>
 
-      <div class="flex gap-2 pt-1">
-        <button onclick="applyPlanUpdate()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase transition active:scale-98">
-          Apply Updates
+      <div id="chrome-sync-tip" class="hidden bg-blue-950/60 border border-blue-700/60 rounded-lg p-2.5 text-[11px] text-blue-200">
+        Sync link loaded in your address bar! Click Chrome's <strong>Share icon</strong> (top right of URL bar) &rarr; <strong>Send to your devices</strong> &rarr; pick your phone.
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button onclick="applyPlanUpdate()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs tracking-wider uppercase transition active:scale-98">
+          Apply JSON
+        </button>
+        <button onclick="prepareChromeTabSync()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2.5 rounded-lg text-xs">
+          Send via Chrome
         </button>
         <button onclick="copyCurrentPlan()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2.5 rounded-lg text-xs">
           Copy Current
@@ -184,6 +192,57 @@
     let currentPlan = defaultPlan;
     let selectedDayId = "mon";
     let checkedSets = {};
+    let savedWeights = {};
+
+    // Smart normalizer so "Incline Dumbbell Press", "Incline DB Press", and "Incline Dumbbell Bench Press" share saved PRs
+    function normalizeExKey(name) {
+      return name
+        .toLowerCase()
+        .replace(/\bdb\b/g, "dumbbell")
+        .replace(/\bbb\b/g, "barbell")
+        .replace(/\b(bench|standing|seated|weighted|bodyweight|or|assisted)\b/g, "")
+        .replace(/\(.*?\)/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function getSavedWeight(name) {
+      const norm = normalizeExKey(name);
+      return savedWeights[norm] || savedWeights[name] || "";
+    }
+
+    function saveWeight(name, val) {
+      const norm = normalizeExKey(name);
+      savedWeights[norm] = val.trim();
+      localStorage.setItem("rotc_weights_v1", JSON.stringify(savedWeights));
+    }
+
+    // Compact key packing for Chrome URL sync
+    function packPlan(p) {
+      return {
+        d: p.days.map(day => ({
+          i: day.id, l: day.label, f: day.fullTitle, o: day.location,
+          t: day.timeBlock, c: day.focus, b: day.bufferNote, y: day.bufferType,
+          wt: day.warmupTime, w: day.warmup, ct: day.cooldownTime, cd: day.cooldown,
+          e: day.exercises.map(ex => ({
+            n: ex.name, g: ex.target, m: ex.notes, a: ex.alt, s: ex.sets
+          }))
+        }))
+      };
+    }
+
+    function unpackPlan(packed) {
+      if (packed.days) return packed;
+      return {
+        days: packed.d.map(day => ({
+          id: day.i, label: day.l, fullTitle: day.f, location: day.o,
+          timeBlock: day.t, focus: day.c, bufferNote: day.b, bufferType: day.y,
+          warmupTime: day.wt, warmup: day.w, cooldownTime: day.ct, cooldown: day.cd,
+          exercises: day.e.map(ex => ({
+            name: ex.n, target: ex.g, notes: ex.m, alt: ex.a, sets: ex.s
+          }))
+        }))
+      };
+    }
 
     function init() {
       const savedPlan = localStorage.getItem("rotc_workout_plan_v1");
@@ -193,6 +252,28 @@
       const savedChecks = localStorage.getItem("rotc_checked_sets_v1");
       if (savedChecks) {
         try { checkedSets = JSON.parse(savedChecks); } catch (e) { checkedSets = {}; }
+      }
+      const weightsRaw = localStorage.getItem("rotc_weights_v1");
+      if (weightsRaw) {
+        try { savedWeights = JSON.parse(weightsRaw); } catch (e) { savedWeights = {}; }
+      }
+
+      // Check if arriving via a Chrome Sync link (?p=...)
+      const params = new URLSearchParams(window.location.search);
+      const compressed = params.get("p");
+      if (compressed) {
+        try {
+          const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+          const parsed = unpackPlan(JSON.parse(decompressed));
+          if (parsed.days && Array.isArray(parsed.days)) {
+            currentPlan = parsed;
+            localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert("Workout plan synced to this device!");
+          }
+        } catch (e) {
+          console.error("Sync link error:", e);
+        }
       }
 
       if (localStorage.getItem("rotc_beta_unlocked") === "true") {
@@ -290,6 +371,8 @@
 
       document.getElementById("exercise-list").innerHTML = day.exercises.map((ex, idx) => {
         const totalSets = ex.sets || 3;
+        const wtVal = getSavedWeight(ex.name);
+        const safeName = ex.name.replace(/'/g, "\\'");
         let setChips = '';
         for (let s = 1; s <= totalSets; s++) {
           const key = `${day.id}_ex${idx}_s${s}`;
@@ -317,6 +400,8 @@
                 <div class="text-[11px] text-slate-400 mt-1 leading-snug">${ex.notes}</div>
                 ${ex.alt ? `<div class="text-[10px] text-slate-500 mt-1"><span class="text-slate-400 font-semibold">Alt:</span> ${ex.alt}</div>` : ''}
               </div>
+              <input type="text" value="${wtVal}" onchange="saveWeight('${safeName}', this.value)" placeholder="Wt / PR"
+                class="w-20 bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1 text-xs font-mono text-right text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-red-500 shrink-0" />
             </div>
             <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-800/80">
               <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Log Sets</span>
@@ -387,9 +472,10 @@
       } catch (e) {}
     }
 
-    // MODAL & UPDATE LOGIC
+    // MODAL, SYNC & UPDATE LOGIC
     function toggleModal(show) {
       document.getElementById("update-modal").classList.toggle("hidden", !show);
+      document.getElementById("chrome-sync-tip").classList.add("hidden");
       if (show) {
         document.getElementById("json-input").value = "";
       }
@@ -425,6 +511,32 @@
       } catch (err) {
         alert("Failed to parse JSON: " + err.message);
       }
+    }
+
+    function prepareChromeTabSync() {
+      const text = document.getElementById("json-input").value.trim();
+      let targetPlan = currentPlan;
+      if (text) {
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed.days && Array.isArray(parsed.days)) {
+            targetPlan = parsed;
+            currentPlan = parsed;
+            localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+            renderDayButtons();
+            renderActiveDay();
+            lucide.createIcons();
+          }
+        } catch (err) {
+          alert("Invalid JSON: " + err.message);
+          return;
+        }
+      }
+      const packed = packPlan(targetPlan);
+      const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(packed));
+      const syncUrl = `${window.location.origin}${window.location.pathname}?p=${compressed}`;
+      window.history.pushState({}, "", syncUrl);
+      document.getElementById("chrome-sync-tip").classList.remove("hidden");
     }
 
     function copyCurrentPlan() {
