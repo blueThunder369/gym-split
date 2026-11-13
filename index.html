@@ -49,10 +49,16 @@
           <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Fall 2026 Phase • Hypertrophy & ACFT</p>
         </div>
       </div>
-      <button onclick="toggleModal(true)" class="flex items-center gap-1 bg-red-950/70 border border-red-700/60 hover:bg-red-900 text-red-200 text-xs px-2.5 py-1.5 rounded-md font-bold tracking-wider transition active:scale-95">
-        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-        <span>Update</span>
-      </button>
+      <div class="flex items-center gap-1.5">
+        <a id="beta-btn" href="beta.html" class="hidden items-center gap-1 bg-amber-950/80 border border-amber-600/60 hover:bg-amber-900 text-amber-300 text-xs px-2.5 py-1.5 rounded-md font-bold tracking-wider transition active:scale-95">
+          <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+          <span>Lab</span>
+        </a>
+        <button onclick="toggleModal(true)" class="flex items-center gap-1 bg-red-950/70 border border-red-700/60 hover:bg-red-900 text-red-200 text-xs px-2.5 py-1.5 rounded-md font-bold tracking-wider transition active:scale-95">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Update</span>
+        </button>
+      </div>
     </div>
 
     <!-- DAY SELECTOR STRIP -->
@@ -189,10 +195,19 @@
         try { checkedSets = JSON.parse(savedChecks); } catch (e) { checkedSets = {}; }
       }
 
+      if (localStorage.getItem("rotc_beta_unlocked") === "true") {
+        const btn = document.getElementById("beta-btn");
+        btn.classList.remove("hidden");
+        btn.classList.add("flex");
+      }
+
       const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-      const todayId = dayNames[new Date().getDay()];
-      if (currentPlan.days.some(d => d.id === todayId)) {
-        selectedDayId = todayId;
+      const todayPrefix = dayNames[new Date().getDay()];
+      const matchingDay = currentPlan.days.find(d => d.id.startsWith(todayPrefix));
+      if (matchingDay) {
+        selectedDayId = matchingDay.id;
+      } else if (currentPlan.days.length > 0) {
+        selectedDayId = currentPlan.days[0].id;
       }
 
       renderDayButtons();
@@ -206,7 +221,7 @@
         const isActive = d.id === selectedDayId;
         return `
           <button onclick="selectDay('${d.id}')" 
-            class="flex-1 min-w-[44px] py-1.5 px-2 rounded-lg text-center transition active:scale-95 border ${
+            class="flex-1 min-w-[52px] py-1.5 px-2 rounded-lg text-center transition active:scale-95 border ${
               isActive 
                 ? 'bg-red-600 border-red-500 text-white shadow-md shadow-red-950 font-black' 
                 : 'bg-slate-900 border-slate-800 text-slate-400 font-bold hover:text-slate-200'
@@ -385,6 +400,15 @@
       if (!text) return;
       try {
         const parsed = JSON.parse(text);
+        if (parsed.unlockBeta === true) {
+          localStorage.setItem("rotc_beta_unlocked", "true");
+          const btn = document.getElementById("beta-btn");
+          btn.classList.remove("hidden");
+          btn.classList.add("flex");
+          toggleModal(false);
+          alert("Developer Lab unlocked!");
+          return;
+        }
         if (parsed.days && Array.isArray(parsed.days)) {
           currentPlan = parsed;
           localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
