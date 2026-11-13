@@ -24,7 +24,7 @@
       padding-top: max(12px, env(safe-area-inset-top));
     }
     .safe-bottom {
-      padding-bottom: max(160px, calc(env(safe-area-inset-bottom) + 140px))!important;
+      padding-bottom: max(160px, calc(env(safe-area-inset-bottom) + 140px)) !important;
     }
     .scrollbar-none::-webkit-scrollbar {
       display: none;
@@ -161,157 +161,22 @@
   </div>
 
   <script>
-    // INITIAL WEEKLY PLAN DATA
+    // CLEAN BLANK TEMPLATE (Loaded if no custom JSON is saved yet)
     const defaultPlan = {
       days: [
-        {
-          id: "mon",
-          label: "Mon",
-          fullTitle: "Monday — Long Run & Core",
-          location: "Liberty Park / Dorm",
-          timeBlock: "06:15 – 07:30 (ROTC) | Afternoon Core",
-          focus: "Aerobic Capacity & ACFT Core Foundation",
-          bufferNote: "Morning PT at Liberty Park. Finish afternoon core before evening coursework.",
-          bufferType: "normal",
-          warmupTime: "15 MIN",
-          warmup: "Dynamic preparatory drills, hip circles, light jog strides, inchworms.",
-          cooldownTime: "15 MIN",
-          cooldown: "Standing quad stretch, deep seated hamstring stretch, pigeon pose, calves on curb.",
-          exercises: [
-            { name: "ROTC Long Run", target: "6.0 Miles", notes: "Select 8:00, 9:00, or 10:00 pace group", alt: "Stationary Bike 40 min Zone 2", sets: 1 },
-            { name: "Forearm Plank (ACFT Stance)", target: "3 sets × 60s", notes: "Elbows under shoulders, glutes locked", alt: "Hollow body hold 45s", sets: 3 },
-            { name: "Hanging Knee/Leg Raises", target: "3 sets × 10-12 reps", notes: "Strict cadence, avoid swinging", alt: "Lying reverse crunches", sets: 3 },
-            { name: "Deadbugs", target: "3 sets × 12/side", notes: "Keep lower back glued to floor", alt: "Bird-dogs with pause", sets: 3 }
-          ]
-        },
-        {
-          id: "tue",
-          label: "Tue",
-          fullTitle: "Tuesday — Dorm Lower & Trunk",
-          location: "Dorm Gym (Sage Point)",
-          timeBlock: "Afternoon (Post-Math 1210)",
-          focus: "Lower Hypertrophy & Sparing Shoulders for Sprints",
-          bufferNote: "Hard stop before 17:00 Study Hall. Keep 2 reps in reserve so legs bounce back for Wednesday sprints.",
-          bufferType: "warning",
-          warmupTime: "8 MIN",
-          warmup: "Bodyweight squats, deep hip openers, glute bridges, high knees, ankle rotations.",
-          cooldownTime: "10 MIN",
-          cooldown: "Couch stretch (quad/hip flexor), seated hamstring stretch, glute pigeon pose.",
-          exercises: [
-            { name: "Dumbbell Goblet Squats", target: "3 sets × 10-12 reps", notes: "Chest proud, knees tracked outward", alt: "Dumbbell Sumo Squats", sets: 3 },
-            { name: "Dumbbell Romanian Deadlifts", target: "3 sets × 10 reps", notes: "Hips back, feel hamstring stretch", alt: "Single-leg DB Deadlift", sets: 3 },
-            { name: "Walking Dumbbell Lunges", target: "3 sets × 10 steps/leg", notes: "Upright torso, controlled knee descent", alt: "Reverse static lunges", sets: 3 },
-            { name: "Standing Calf Raises", target: "3 sets × 15 reps", notes: "Pause 2s at top on a step/ledge", alt: "Single-leg calf raises", sets: 3 },
-            { name: "Weighted/Bodyweight Plank", target: "3 sets × 60s", notes: "Solid tension across whole trunk", alt: "Side planks 35s/side", sets: 3 }
-          ]
-        },
-        {
-          id: "wed",
-          label: "Wed",
-          fullTitle: "Wednesday — Speed Intervals & Shoulder Prehab",
-          location: "McCarthy Track / Campus",
-          timeBlock: "06:30 – 07:30 (ROTC) | 16:30 Mobility",
-          focus: "2-Mile Run Pace & Scapular Stability",
-          bufferNote: "Track sprints at 06:30. Afternoon prehab keeps rotator cuffs healthy for Thursday upper body.",
-          bufferType: "normal",
-          warmupTime: "15 MIN",
-          warmup: "2 laps jog, high knees, butt kicks, A-skips, arm swings.",
-          cooldownTime: "15 MIN",
-          cooldown: "2 slow laps walk, doorway chest stretch, cross-body shoulder stretch.",
-          exercises: [
-            { name: "Track Intervals: 120s / 60s", target: "8-10 Rounds", notes: "120s sprint at 2-mile pace / 60s recovery jog", alt: "Row Erg 500m repeats", sets: 8 },
-            { name: "Banded Face Pulls", target: "3 sets × 15 reps", notes: "Pinch rear delts and scapulae back", alt: "Rear delt dumbbell flyes", sets: 3 },
-            { name: "Banded Pass-Throughs", target: "2 sets × 12 reps", notes: "Slow controlled shoulder rotation", alt: "Wall slides", sets: 2 },
-            { name: "Side Planks", target: "3 sets × 35s / side", notes: "Obliques engaged, hips elevated", alt: "Suitcase carry 40m", sets: 3 }
-          ]
-        },
-        {
-          id: "thu",
-          label: "Thu",
-          fullTitle: "Thursday — SLC Upper & ACFT Push/Pull",
-          location: "Student Life Center (SLC)",
-          timeBlock: "06:00 – 07:45 AM",
-          focus: "Upper Hypertrophy, HRP Precision & Grip",
-          bufferNote: "Early morning lift. Wrap by 07:45 to commute and shower before 08:30 Mech 1000 class.",
-          bufferType: "warning",
-          warmupTime: "10 MIN",
-          warmup: "500m ski-erg/row, push-up plus, arm circles, band pull-aparts.",
-          cooldownTime: "10 MIN",
-          cooldown: "Dead hang on pull-up bar, lat stretch on pole, child's pose, forearm flexor stretches.",
-          exercises: [
-            { name: "Hex / Trap Bar Deadlift", target: "3 sets × 6-8 reps", notes: "Explosive hip drive, build ACFT 340lb deadlift", alt: "Barbell Conventional Deadlift", sets: 3 },
-            { name: "Incline Dumbbell Bench Press", target: "3 sets × 8-10 reps", notes: "Full range of motion, control eccentric", alt: "Barbell Incline Press", sets: 3 },
-            { name: "Hand-Release Push-Up Drills", target: "3 sets × 8-10 strict", notes: "Hands lift completely, snap up in one plank unit", alt: "Deficit push-ups", sets: 3 },
-            { name: "Lat Pulldown (or Pull-Ups)", target: "3 sets × 8-10 reps", notes: "Drive elbows down to hips", alt: "Assisted Pull-ups", sets: 3 },
-            { name: "Seated Cable Row", target: "3 sets × 10 reps", notes: "Squeeze shoulder blades for 1 second", alt: "Chest-supported DB Row", sets: 3 },
-            { name: "Heavy Farmer's Carries", target: "3 sets × 40m", notes: "Grip resilience for sprint-drag-carry", alt: "Trap bar carry", sets: 3 }
-          ]
-        },
-        {
-          id: "fri",
-          label: "Fri",
-          fullTitle: "Friday — 5-Mile Ruck & Full Rest",
-          location: "Sugarhouse Park",
-          timeBlock: "06:00 – 07:30 (ROTC Ruck) | AFTERNOON OFF",
-          focus: "Load Bearing & Complete Physical Recovery",
-          bufferNote: "Zero additional lifting today. Rest day protected to let spine and legs decompress.",
-          bufferType: "danger",
-          warmupTime: "10 MIN",
-          warmup: "Stretch on own, dynamic lunges, ankle rolls.",
-          cooldownTime: "15 MIN",
-          cooldown: "Unlace boots immediately, elevate feet, 10 min gentle quad and lower back foam rolling.",
-          exercises: [
-            { name: "ROTC 5-Mile Ruck (35 lbs)", target: "5.0 Miles", notes: "Aim for 15-min standard mile pace", alt: "Non-weight trail walk", sets: 1 },
-            { name: "Complete Rest & High Protein Meal", target: "Afternoon", notes: "Rehydrate with electrolytes, avoid lifting", alt: "Full rest", sets: 1 }
-          ]
-        },
-        {
-          id: "sat",
-          label: "Sat",
-          fullTitle: "Saturday — Full Body Hypertrophy & Power",
-          location: "Student Life Center (SLC)",
-          timeBlock: "09:30 – 11:00 AM (Flexible)",
-          focus: "Overall Muscle Mass & Standing Power Throw",
-          bufferNote: "Open weekend session. Take longer rests between heavy compound sets.",
-          bufferType: "normal",
-          warmupTime: "10 MIN",
-          warmup: "Treadmill incline walk, hip circles, medicine ball rotational taps.",
-          cooldownTime: "12 MIN",
-          cooldown: "Full body mobility flow: pigeon, thread the needle, downward dog to cobra.",
-          exercises: [
-            { name: "Overhead Dumbbell Press", target: "3 sets × 8-10 reps", notes: "Keep ribs down, lock overhead", alt: "Standing Barbell OHP", sets: 3 },
-            { name: "Bulgarian Split Squats", target: "3 sets × 8 reps/leg", notes: "Front foot planted, knee stable", alt: "Dumbbell Step-ups", sets: 3 },
-            { name: "Chest-Supported DB Rows", target: "3 sets × 10 reps", notes: "Zero lower back strain, strict pull", alt: "Inverted body rows", sets: 3 },
-            { name: "Med Ball Backward Overhead Toss", target: "4 sets × 5 reps", notes: "Triple extension (ankles, knees, hips) for ACFT SPT", alt: "Kettlebell swings", sets: 4 },
-            { name: "Hanging Leg Tucks", target: "3 sets × 10 reps", notes: "Controlled core contraction", alt: "Captains chair knee raises", sets: 3 }
-          ]
-        },
-        {
-          id: "sun",
-          label: "Sun",
-          fullTitle: "Sunday — Active Recovery & Deep Mobility",
-          location: "Dorm Room or Campus Grounds",
-          timeBlock: "Anytime (30-45 min)",
-          focus: "Tissue Quality & Nervous System Reset",
-          bufferNote: "Prepares legs and nervous system for Monday 6-mile run.",
-          bufferType: "normal",
-          warmupTime: "5 MIN",
-          warmup: "Gentle walk around campus or light spin.",
-          cooldownTime: "10 MIN",
-          cooldown: "Diaphragmatic box breathing (4s in, 4s hold, 4s out, 4s hold) for 5 minutes.",
-          exercises: [
-            { name: "Campus Low-Intensity Walk", target: "25-30 Minutes", notes: "Flush lactic acid, promote blood flow", alt: "Easy stationary bike", sets: 1 },
-            { name: "Couch Hip Flexor Stretch", target: "2 rounds × 45s/side", notes: "Release tight psoas from rucking", alt: "Kneeling lunge stretch", sets: 2 },
-            { name: "Hamstring Band Stretch", target: "2 rounds × 45s/side", notes: "Gentle pull without shaking", alt: "Towel hamstring stretch", sets: 2 },
-            { name: "Deep Squat Ankle Hold", target: "2 rounds × 60s", notes: "Open ankles and deep groin", alt: "Prone frog stretch", sets: 2 }
-          ]
-        }
+        { id: "mon", label: "Mon", fullTitle: "Monday — Plan Pending", location: "TBD", timeBlock: "06:15 – 07:30", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "tue", label: "Tue", fullTitle: "Tuesday — Plan Pending", location: "TBD", timeBlock: "TBD", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "wed", label: "Wed", fullTitle: "Wednesday — Plan Pending", location: "TBD", timeBlock: "06:30 – 07:30", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "thu", label: "Thu", fullTitle: "Thursday — Plan Pending", location: "TBD", timeBlock: "TBD", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "fri", label: "Fri", fullTitle: "Friday — Plan Pending", location: "TBD", timeBlock: "06:00 – 07:30", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "sat", label: "Sat", fullTitle: "Saturday — Plan Pending", location: "TBD", timeBlock: "Flexible", focus: "Tap Update to load this week's schedule", bufferNote: "", bufferType: "normal", warmupTime: "10 MIN", warmup: "Dynamic mobility drills.", cooldownTime: "10 MIN", cooldown: "Static stretching & hydration.", exercises: [] },
+        { id: "sun", label: "Sun", fullTitle: "Sunday — Active Recovery", location: "Dorm / Campus", timeBlock: "Flexible", focus: "Mobility & Recovery", bufferNote: "", bufferType: "normal", warmupTime: "5 MIN", warmup: "Easy walk.", cooldownTime: "10 MIN", cooldown: "Box breathing & stretching.", exercises: [] }
       ]
     };
 
     // APP STATE
     let currentPlan = defaultPlan;
-    let selectedDayId = "tue"; // default to Tuesday
+    let selectedDayId = "mon";
     let checkedSets = {};
 
     function init() {
@@ -324,7 +189,6 @@
         try { checkedSets = JSON.parse(savedChecks); } catch (e) { checkedSets = {}; }
       }
 
-      // Match current day of the week if available
       const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
       const todayId = dayNames[new Date().getDay()];
       if (currentPlan.days.some(d => d.id === todayId)) {
@@ -364,7 +228,6 @@
       const day = currentPlan.days.find(d => d.id === selectedDayId);
       if (!day) return;
 
-      // Overview Card
       document.getElementById("overview-card").innerHTML = `
         <div class="flex items-start justify-between">
           <div>
@@ -378,7 +241,6 @@
         <p class="text-xs text-slate-300 mt-2 font-medium">${day.focus}</p>
       `;
 
-      // Buffer alert
       const alertEl = document.getElementById("buffer-alert");
       if (day.bufferNote) {
         alertEl.classList.remove("hidden");
@@ -396,14 +258,21 @@
         alertEl.classList.add("hidden");
       }
 
-      // Warm-up & Cool-down
       document.getElementById("warmup-time").innerText = day.warmupTime || "10 MIN";
       document.getElementById("warmup-details").innerText = day.warmup || "Dynamic mobility drills.";
       document.getElementById("cooldown-time").innerText = day.cooldownTime || "10 MIN";
       document.getElementById("cooldown-details").innerText = day.cooldown || "Static stretching and hydration.";
 
-      // Exercise List
       document.getElementById("exercise-count").innerText = `${day.exercises.length} MOVEMENTS`;
+      if (day.exercises.length === 0) {
+        document.getElementById("exercise-list").innerHTML = `
+          <div class="bg-slate-900/50 border border-dashed border-slate-800 rounded-xl p-6 text-center text-xs text-slate-400">
+            No exercises loaded for this day yet. Tap <strong>Update</strong> at the top right to paste your weekly JSON.
+          </div>
+        `;
+        return;
+      }
+
       document.getElementById("exercise-list").innerHTML = day.exercises.map((ex, idx) => {
         const totalSets = ex.sets || 3;
         let setChips = '';
@@ -519,6 +388,8 @@
         if (parsed.days && Array.isArray(parsed.days)) {
           currentPlan = parsed;
           localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+          checkedSets = {};
+          localStorage.removeItem("rotc_checked_sets_v1");
           toggleModal(false);
           renderDayButtons();
           renderActiveDay();
