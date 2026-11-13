@@ -7,10 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { background-color: #0b0f17; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .safe-bottom { padding-bottom: 150px !important; }
     .scrollbar-none::-webkit-scrollbar { display: none; }
+    #qrcode img, #qrcode canvas { margin: 0 auto; border-radius: 6px; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -82,17 +84,19 @@
         <button onclick="toggleSyncModal(false)" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
-      <div class="space-y-2">
+      <div class="space-y-2.5">
         <div class="text-xs font-bold text-white">1. Instant QR Transfer (PC &rarr; Phone Camera)</div>
-        <p class="text-[11px] text-slate-400">Paste JSON on your PC, generate a QR code, and scan it with your phone's camera to load the week automatically.</p>
-        <textarea id="beta-json-input" class="w-full h-28 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200" placeholder="Paste weekly JSON here..."></textarea>
+        <p class="text-[11px] text-slate-400">Paste JSON on your PC, generate a QR code locally, and scan it with your phone's camera—or copy the direct sync link.</p>
+        <textarea id="beta-json-input" class="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200" placeholder="Paste weekly JSON here..."></textarea>
         <div class="flex gap-2">
           <button onclick="applyAndGenerateQR()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-lg text-xs uppercase">Load & Make QR</button>
+          <button onclick="copySyncLink()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-lg text-xs">Copy Link</button>
           <button onclick="pullFromGitHub()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-lg text-xs">Fetch plan.json</button>
         </div>
-        <div id="qr-container" class="hidden flex flex-col items-center bg-white p-3 rounded-xl mt-2">
-          <img id="qr-image" alt="Scan with phone" class="w-44 h-44" />
-          <span class="text-[10px] font-bold text-slate-800 mt-1">Scan with iPhone Camera to Sync</span>
+
+        <div id="qr-container" class="hidden flex flex-col items-center bg-white p-4 rounded-xl mt-2">
+          <div id="qrcode"></div>
+          <span id="qr-caption" class="text-[11px] font-bold text-slate-800 mt-2 text-center">Scan with iPhone Camera to Sync</span>
         </div>
       </div>
     </div>
@@ -104,6 +108,7 @@
     let weights = JSON.parse(localStorage.getItem("rotc_weights_v1") || '{}');
     let readiness = JSON.parse(localStorage.getItem("rotc_readiness_v1") || '{}');
     let selectedDayId = plan.days[0]?.id || "";
+    let lastGeneratedUrl = "";
 
     function init() {
       const params = new URLSearchParams(window.location.search);
@@ -116,7 +121,7 @@
             plan = parsed;
             localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
             window.history.replaceState({}, document.title, window.location.pathname);
-            alert("Synced workout plan from QR link!");
+            alert("Synced workout plan from link!");
           }
         } catch (e) { console.error("QR decode error", e); }
       }
@@ -202,6 +207,13 @@
       if (show) document.getElementById("beta-json-input").value = JSON.stringify(plan, null, 2);
     }
 
+    function buildSyncUrl(parsed) {
+      // Minify JSON first so it compresses as tightly as possible
+      const minified = JSON.stringify(parsed);
+      const compressed = LZString.compressToEncodedURIComponent(minified);
+      return `${window.location.origin}${window.location.pathname}?p=${compressed}`;
+    }
+
     function applyAndGenerateQR() {
       try {
         const parsed = JSON.parse(document.getElementById("beta-json-input").value);
@@ -210,10 +222,37 @@
         localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
         render();
 
-        const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(parsed));
-        const syncUrl = `${window.location.origin}${window.location.pathname}?p=${compressed}`;
-        document.getElementById("qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(syncUrl)}`;
-        document.getElementById("qr-container").classList.remove("hidden");
+        lastGeneratedUrl = buildSyncUrl(parsed);
+        const qrContainer = document.getElementById("qr-container");
+        const qrTarget = document.getElementById("qrcode");
+        const caption = document.getElementById("qr-caption");
+        qrTarget.innerHTML = "";
+        qrContainer.classList.remove("hidden");
+
+        try {
+          new QRCode(qrTarget, {
+            text: lastGeneratedUrl,
+            width: 240,
+            height: 240,
+            correctLevel: QRCode.CorrectLevel.L
+          });
+          caption.innerText = "Scan with iPhone Camera to Sync";
+        } catch (qrErr) {
+          qrTarget.innerHTML = `<div class="text-xs text-red-600 font-bold p-3 text-center">Plan is too large for a single QR code (${lastGeneratedUrl.length} chars). Tap "Copy Link" above and text/AirDrop it to your phone!</div>`;
+          caption.innerText = "Use Copy Link or Fetch plan.json for 9-day plans";
+        }
+      } catch (e) {
+        alert("Invalid JSON: " + e.message);
+      }
+    }
+
+    function copySyncLink() {
+      try {
+        const parsed = JSON.parse(document.getElementById("beta-json-input").value);
+        const url = buildSyncUrl(parsed);
+        navigator.clipboard.writeText(url).then(() => {
+          alert("Direct Sync Link copied! Paste it in Messages/Notes to open on your phone.");
+        });
       } catch (e) {
         alert("Invalid JSON: " + e.message);
       }
