@@ -17,6 +17,24 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+  <!-- ACCESS GATE OVERLAY (Blocks screen until verified) -->
+  <div id="access-gate" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xs p-5 text-center space-y-4 shadow-2xl">
+      <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400">
+        <i data-lucide="lock" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-black uppercase tracking-wider text-white">Restricted Test Lab</h2>
+        <p class="text-[11px] text-slate-400 mt-1">Enter passcode or unlock via JSON on the main dashboard.</p>
+      </div>
+      <input type="password" id="gate-passcode" placeholder="Enter passcode..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-center text-white focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter') verifyPasscode()" />
+      <div class="flex gap-2">
+        <a href="index.html" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs">Back</a>
+        <button onclick="verifyPasscode()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-lg text-xs uppercase">Unlock</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-amber-700/40 px-4 py-3 shadow-md">
     <div class="flex items-center justify-between">
@@ -30,6 +48,9 @@
         </div>
       </div>
       <div class="flex items-center gap-1.5">
+        <button onclick="lockLab()" title="Lock Lab" class="bg-slate-900 border border-slate-800 hover:border-red-700 text-slate-400 hover:text-red-300 p-1.5 rounded-md">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+        </button>
         <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-md font-bold">Live App</a>
         <button onclick="toggleSyncModal(true)" class="flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs px-2.5 py-1.5 rounded-md font-black tracking-wider">
           <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
@@ -107,13 +128,30 @@
   </div>
 
   <script>
+    const LAB_PASSCODE = "UTAH2026"; // Change this to whatever passcode you want
+
     let plan = JSON.parse(localStorage.getItem("rotc_workout_plan_v1") || '{"days":[]}');
     let checks = JSON.parse(localStorage.getItem("rotc_checked_sets_v1") || '{}');
     let weights = JSON.parse(localStorage.getItem("rotc_weights_v1") || '{}');
     let readiness = JSON.parse(localStorage.getItem("rotc_readiness_v1") || '{}');
     let selectedDayId = plan.days[0]?.id || "";
 
-    // Shrink keys before compressing so 9-day plans fit inside a QR code
+    function verifyPasscode() {
+      const input = document.getElementById("gate-passcode").value.trim();
+      if (input === LAB_PASSCODE) {
+        localStorage.setItem("rotc_beta_unlocked", "true");
+        document.getElementById("access-gate").classList.add("hidden");
+      } else {
+        alert("Incorrect passcode.");
+        window.location.href = "index.html";
+      }
+    }
+
+    function lockLab() {
+      localStorage.removeItem("rotc_beta_unlocked");
+      window.location.href = "index.html";
+    }
+
     function packPlan(p) {
       return {
         d: p.days.map(day => ({
@@ -142,8 +180,11 @@
     }
 
     function init() {
+      lucide.createIcons();
       const params = new URLSearchParams(window.location.search);
       const compressed = params.get("p");
+
+      // Automatically unlock if arriving via a valid compressed QR/Chrome sync link
       if (compressed) {
         try {
           const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
@@ -151,17 +192,22 @@
           if (parsed.days) {
             plan = parsed;
             localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+            localStorage.setItem("rotc_beta_unlocked", "true");
             window.history.replaceState({}, document.title, window.location.pathname);
             alert("Synced workout plan to this device!");
           }
         } catch (e) { console.error("Sync decode error", e); }
       }
 
+      // Gatekeeper check: hide overlay only if already unlocked via JSON or passcode
+      if (localStorage.getItem("rotc_beta_unlocked") === "true") {
+        document.getElementById("access-gate").classList.add("hidden");
+      }
+
       if (plan.days.length > 0 && !plan.days.some(d => d.id === selectedDayId)) {
         selectedDayId = plan.days[0].id;
       }
       render();
-      lucide.createIcons();
     }
 
     function render() {
