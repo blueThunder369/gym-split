@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cadet Readiness | Test Lab (Beta)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <style>
+    body { background-color: #0b0f17; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .safe-bottom { padding-bottom: 150px !important; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-amber-700/40 px-4 py-3 shadow-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-6 bg-amber-500 rounded-sm"></div>
+        <div>
+          <h1 class="text-sm font-black tracking-widest uppercase text-amber-300 flex items-center gap-1.5">
+            READINESS LAB <span class="text-[9px] bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded text-amber-200">BETA</span>
+          </h1>
+          <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Sync • Weight PRs • Auto-Rest</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-md font-bold">Live App</a>
+        <button onclick="toggleSyncModal(true)" class="flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs px-2.5 py-1.5 rounded-md font-black tracking-wider">
+          <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+          <span>Sync</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="day-selector" class="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none py-0.5"></div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="flex-1 px-4 py-4 safe-bottom max-w-xl mx-auto w-full space-y-4">
+    <!-- Overview + Readiness Check-in -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-slate-800 rounded-xl p-3.5 shadow-lg space-y-3">
+      <div id="overview-card"></div>
+      <div class="pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daily Readiness (1–5)</span>
+        <div id="readiness-bar" class="flex gap-1.5"></div>
+      </div>
+    </div>
+
+    <!-- Exercise List with Weight Logger -->
+    <div id="exercise-list" class="space-y-2.5"></div>
+  </main>
+
+  <!-- REST TIMER -->
+  <div id="timer-bar" class="fixed bottom-0 left-0 right-0 z-30 bg-slate-950/95 border-t border-slate-800 px-4 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <i data-lucide="timer" class="w-5 h-5 text-amber-400"></i>
+      <div>
+        <div class="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
+          Auto-Rest
+          <input type="checkbox" id="auto-rest-toggle" checked class="accent-amber-500">
+        </div>
+        <div id="timer-display" class="font-mono text-base font-black text-slate-100">00:00</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="startTimer(60)" class="bg-slate-800 text-xs font-mono font-bold px-2.5 py-1.5 rounded">60s</button>
+      <button onclick="startTimer(90)" class="bg-slate-800 text-xs font-mono font-bold px-2.5 py-1.5 rounded">90s</button>
+      <button onclick="startTimer(180)" class="bg-slate-800 text-xs font-mono font-bold px-2.5 py-1.5 rounded">3m</button>
+      <button onclick="resetTimer()" class="bg-red-950 border border-red-700/50 text-red-300 text-xs px-2 py-1.5 rounded">Stop</button>
+    </div>
+  </div>
+
+  <!-- PC-TO-PHONE SYNC MODAL -->
+  <div id="sync-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h2 class="text-sm font-black uppercase tracking-wider text-amber-300">PC &rarr; Phone Sync Hub</h2>
+        <button onclick="toggleSyncModal(false)" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-bold text-white">1. Instant QR Transfer (PC &rarr; Phone Camera)</div>
+        <p class="text-[11px] text-slate-400">Paste JSON on your PC, generate a QR code, and scan it with your phone's camera to load the week automatically.</p>
+        <textarea id="beta-json-input" class="w-full h-28 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200" placeholder="Paste weekly JSON here..."></textarea>
+        <div class="flex gap-2">
+          <button onclick="applyAndGenerateQR()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-lg text-xs uppercase">Load & Make QR</button>
+          <button onclick="pullFromGitHub()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-lg text-xs">Fetch plan.json</button>
+        </div>
+        <div id="qr-container" class="hidden flex flex-col items-center bg-white p-3 rounded-xl mt-2">
+          <img id="qr-image" alt="Scan with phone" class="w-44 h-44" />
+          <span class="text-[10px] font-bold text-slate-800 mt-1">Scan with iPhone Camera to Sync</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let plan = JSON.parse(localStorage.getItem("rotc_workout_plan_v1") || '{"days":[]}');
+    let checks = JSON.parse(localStorage.getItem("rotc_checked_sets_v1") || '{}');
+    let weights = JSON.parse(localStorage.getItem("rotc_weights_v1") || '{}');
+    let readiness = JSON.parse(localStorage.getItem("rotc_readiness_v1") || '{}');
+    let selectedDayId = plan.days[0]?.id || "";
+
+    function init() {
+      const params = new URLSearchParams(window.location.search);
+      const compressed = params.get("p");
+      if (compressed) {
+        try {
+          const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+          const parsed = JSON.parse(decompressed);
+          if (parsed.days) {
+            plan = parsed;
+            localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert("Synced workout plan from QR link!");
+          }
+        } catch (e) { console.error("QR decode error", e); }
+      }
+
+      if (plan.days.length > 0 && !plan.days.some(d => d.id === selectedDayId)) {
+        selectedDayId = plan.days[0].id;
+      }
+      render();
+      lucide.createIcons();
+    }
+
+    function render() {
+      const selector = document.getElementById("day-selector");
+      selector.innerHTML = plan.days.map(d => `
+        <button onclick="selectedDayId='${d.id}'; render();" class="flex-1 min-w-[54px] py-1.5 px-2 rounded-lg text-[11px] font-mono uppercase border ${d.id === selectedDayId ? 'bg-amber-500 border-amber-400 text-slate-950 font-black' : 'bg-slate-900 border-slate-800 text-slate-400'}">
+          ${d.label}
+        </button>
+      `).join('');
+
+      const day = plan.days.find(d => d.id === selectedDayId);
+      if (!day) return;
+
+      document.getElementById("overview-card").innerHTML = `
+        <div class="text-[10px] font-bold text-amber-400 uppercase">${day.timeBlock} • ${day.location}</div>
+        <h2 class="text-base font-black text-white uppercase mt-0.5">${day.fullTitle}</h2>
+        <p class="text-xs text-slate-300 mt-1">${day.focus}</p>
+      `;
+
+      const currentScore = readiness[day.id] || 0;
+      document.getElementById("readiness-bar").innerHTML = [1, 2, 3, 4, 5].map(n => `
+        <button onclick="setReadiness('${day.id}', ${n})" class="w-7 h-7 rounded font-mono text-xs font-bold border ${currentScore === n ? 'bg-amber-500 border-amber-400 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-400'}">${n}</button>
+      `).join('');
+
+      document.getElementById("exercise-list").innerHTML = day.exercises.map((ex, idx) => {
+        const savedWt = weights[ex.name] || "";
+        let chips = "";
+        for (let s = 1; s <= (ex.sets || 3); s++) {
+          const key = `${day.id}_ex${idx}_s${s}`;
+          chips += `<button onclick="toggleSet('${key}')" class="w-7 h-7 rounded text-[11px] font-mono font-bold border ${checks[key] ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}">S${s}</button>`;
+        }
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2.5">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-white">${ex.name}</h3>
+                <div class="text-xs font-mono text-amber-400">${ex.target}</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${ex.notes}</div>
+              </div>
+              <input type="text" value="${savedWt}" onchange="saveWeight('${ex.name.replace(/'/g, "\\'")}', this.value)" placeholder="Wt / PR" class="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-right text-emerald-300 focus:outline-none focus:border-amber-500" />
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+              <span class="text-[10px] uppercase font-bold text-slate-500">Sets (Auto-Timer)</span>
+              <div class="flex gap-1.5">${chips}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function toggleSet(key) {
+      checks[key] = !checks[key];
+      localStorage.setItem("rotc_checked_sets_v1", JSON.stringify(checks));
+      if (checks[key] && document.getElementById("auto-rest-toggle").checked) {
+        startTimer(90);
+      }
+      render();
+    }
+
+    function saveWeight(name, val) {
+      weights[name] = val;
+      localStorage.setItem("rotc_weights_v1", JSON.stringify(weights));
+    }
+
+    function setReadiness(dayId, score) {
+      readiness[dayId] = score;
+      localStorage.setItem("rotc_readiness_v1", JSON.stringify(readiness));
+      render();
+    }
+
+    function toggleSyncModal(show) {
+      document.getElementById("sync-modal").classList.toggle("hidden", !show);
+      if (show) document.getElementById("beta-json-input").value = JSON.stringify(plan, null, 2);
+    }
+
+    function applyAndGenerateQR() {
+      try {
+        const parsed = JSON.parse(document.getElementById("beta-json-input").value);
+        if (!parsed.days) return alert("Must include a 'days' array.");
+        plan = parsed;
+        localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+        render();
+
+        const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(parsed));
+        const syncUrl = `${window.location.origin}${window.location.pathname}?p=${compressed}`;
+        document.getElementById("qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(syncUrl)}`;
+        document.getElementById("qr-container").classList.remove("hidden");
+      } catch (e) {
+        alert("Invalid JSON: " + e.message);
+      }
+    }
+
+    async function pullFromGitHub() {
+      try {
+        const res = await fetch("plan.json?t=" + Date.now());
+        if (!res.ok) throw new Error("Create a plan.json file in your repo first.");
+        const parsed = await res.json();
+        plan = parsed;
+        localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+        render();
+        toggleSyncModal(false);
+        alert("Pulled latest plan.json from GitHub!");
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    let timerInt = null, sec = 0;
+    function startTimer(d) {
+      clearInterval(timerInt);
+      sec = d;
+      document.getElementById("timer-bar").classList.remove("bg-red-950");
+      updateTimer();
+      timerInt = setInterval(() => {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(timerInt);
+          sec = 0;
+          document.getElementById("timer-bar").classList.add("bg-red-950");
+        }
+        updateTimer();
+      }, 1000);
+    }
+    function resetTimer() { clearInterval(timerInt); sec = 0; document.getElementById("timer-bar").classList.remove("bg-red-950"); updateTimer(); }
+    function updateTimer() {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      document.getElementById("timer-display").innerText = `${m}:${s}`;
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
