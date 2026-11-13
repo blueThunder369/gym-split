@@ -85,13 +85,17 @@
       </div>
 
       <div class="space-y-2.5">
-        <div class="text-xs font-bold text-white">1. Instant QR Transfer (PC &rarr; Phone Camera)</div>
-        <p class="text-[11px] text-slate-400">Paste JSON on your PC, generate a QR code locally, and scan it with your phone's camera—or copy the direct sync link.</p>
+        <div class="text-xs font-bold text-white">Send Schedule from PC to Phone</div>
+        <p class="text-[11px] text-slate-400">Paste your JSON below, then either scan the QR code with your phone's camera or click <strong>Send via Chrome</strong> to put the sync link in your address bar.</p>
         <textarea id="beta-json-input" class="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200" placeholder="Paste weekly JSON here..."></textarea>
-        <div class="flex gap-2">
-          <button onclick="applyAndGenerateQR()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-lg text-xs uppercase">Load & Make QR</button>
-          <button onclick="copySyncLink()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-lg text-xs">Copy Link</button>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="applyAndGenerateQR()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 px-3 rounded-lg text-xs uppercase">Load & Make QR</button>
+          <button onclick="prepareChromeTabSync()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2 rounded-lg text-xs">Send via Chrome</button>
           <button onclick="pullFromGitHub()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-lg text-xs">Fetch plan.json</button>
+        </div>
+
+        <div id="chrome-sync-tip" class="hidden bg-blue-950/60 border border-blue-700/60 rounded-lg p-2.5 text-[11px] text-blue-200">
+          Sync URL loaded into your address bar! Click Chrome's <strong>Share icon</strong> (top right of URL bar) &rarr; <strong>Send to your devices</strong> &rarr; pick your phone.
         </div>
 
         <div id="qr-container" class="hidden flex flex-col items-center bg-white p-4 rounded-xl mt-2">
@@ -108,7 +112,34 @@
     let weights = JSON.parse(localStorage.getItem("rotc_weights_v1") || '{}');
     let readiness = JSON.parse(localStorage.getItem("rotc_readiness_v1") || '{}');
     let selectedDayId = plan.days[0]?.id || "";
-    let lastGeneratedUrl = "";
+
+    // Shrink keys before compressing so 9-day plans fit inside a QR code
+    function packPlan(p) {
+      return {
+        d: p.days.map(day => ({
+          i: day.id, l: day.label, f: day.fullTitle, o: day.location,
+          t: day.timeBlock, c: day.focus, b: day.bufferNote, y: day.bufferType,
+          wt: day.warmupTime, w: day.warmup, ct: day.cooldownTime, cd: day.cooldown,
+          e: day.exercises.map(ex => ({
+            n: ex.name, g: ex.target, m: ex.notes, a: ex.alt, s: ex.sets
+          }))
+        }))
+      };
+    }
+
+    function unpackPlan(packed) {
+      if (packed.days) return packed;
+      return {
+        days: packed.d.map(day => ({
+          id: day.i, label: day.l, fullTitle: day.f, location: day.o,
+          timeBlock: day.t, focus: day.c, bufferNote: day.b, bufferType: day.y,
+          warmupTime: day.wt, warmup: day.w, cooldownTime: day.ct, cooldown: day.cd,
+          exercises: day.e.map(ex => ({
+            name: ex.n, target: ex.g, notes: ex.m, alt: ex.a, sets: ex.s
+          }))
+        }))
+      };
+    }
 
     function init() {
       const params = new URLSearchParams(window.location.search);
@@ -116,14 +147,14 @@
       if (compressed) {
         try {
           const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
-          const parsed = JSON.parse(decompressed);
+          const parsed = unpackPlan(JSON.parse(decompressed));
           if (parsed.days) {
             plan = parsed;
             localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
             window.history.replaceState({}, document.title, window.location.pathname);
-            alert("Synced workout plan from link!");
+            alert("Synced workout plan to this device!");
           }
-        } catch (e) { console.error("QR decode error", e); }
+        } catch (e) { console.error("Sync decode error", e); }
       }
 
       if (plan.days.length > 0 && !plan.days.some(d => d.id === selectedDayId)) {
@@ -208,9 +239,8 @@
     }
 
     function buildSyncUrl(parsed) {
-      // Minify JSON first so it compresses as tightly as possible
-      const minified = JSON.stringify(parsed);
-      const compressed = LZString.compressToEncodedURIComponent(minified);
+      const packed = packPlan(parsed);
+      const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(packed));
       return `${window.location.origin}${window.location.pathname}?p=${compressed}`;
     }
 
@@ -222,7 +252,7 @@
         localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
         render();
 
-        lastGeneratedUrl = buildSyncUrl(parsed);
+        const syncUrl = buildSyncUrl(parsed);
         const qrContainer = document.getElementById("qr-container");
         const qrTarget = document.getElementById("qrcode");
         const caption = document.getElementById("qr-caption");
@@ -231,28 +261,31 @@
 
         try {
           new QRCode(qrTarget, {
-            text: lastGeneratedUrl,
+            text: syncUrl,
             width: 240,
             height: 240,
             correctLevel: QRCode.CorrectLevel.L
           });
-          caption.innerText = "Scan with iPhone Camera to Sync";
+          caption.innerText = `Scan with Phone Camera (${syncUrl.length} chars)`;
         } catch (qrErr) {
-          qrTarget.innerHTML = `<div class="text-xs text-red-600 font-bold p-3 text-center">Plan is too large for a single QR code (${lastGeneratedUrl.length} chars). Tap "Copy Link" above and text/AirDrop it to your phone!</div>`;
-          caption.innerText = "Use Copy Link or Fetch plan.json for 9-day plans";
+          qrTarget.innerHTML = `<div class="text-xs text-red-600 font-bold p-3 text-center">Still slightly too dense for QR (${syncUrl.length} chars). Click "Send via Chrome" above!</div>`;
         }
       } catch (e) {
         alert("Invalid JSON: " + e.message);
       }
     }
 
-    function copySyncLink() {
+    function prepareChromeTabSync() {
       try {
         const parsed = JSON.parse(document.getElementById("beta-json-input").value);
-        const url = buildSyncUrl(parsed);
-        navigator.clipboard.writeText(url).then(() => {
-          alert("Direct Sync Link copied! Paste it in Messages/Notes to open on your phone.");
-        });
+        if (!parsed.days) return alert("Must include a 'days' array.");
+        plan = parsed;
+        localStorage.setItem("rotc_workout_plan_v1", JSON.stringify(parsed));
+        render();
+
+        const syncUrl = buildSyncUrl(parsed);
+        window.history.pushState({}, "", syncUrl);
+        document.getElementById("chrome-sync-tip").classList.remove("hidden");
       } catch (e) {
         alert("Invalid JSON: " + e.message);
       }
